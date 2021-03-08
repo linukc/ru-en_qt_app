@@ -1,0 +1,5 @@
+db/
+workspace.code-workspace
+*.ui
+__*
+database.py
