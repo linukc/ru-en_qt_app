@@ -30,6 +30,26 @@ class EmptyLine_LW(LoginWindow_BaseError):
     error_title = 'Warning'
     error_msg = "One of the stringboxes is empty"
 
+class ExistedUser(LoginWindow_BaseError):
+    error_title = 'Warning'
+    error_msg = 'existed login'
+
+class WrongLoginOrPassword(LoginWindow_BaseError):
+    error_title = 'Warning'
+    error_msg = 'wrong login or password'
 
 class TestWindow_BaseError(Exception):
     pass
+
+
+class DB_BaseError(Exception):
+    pass
+
+class NotConnectionToDB(DB_BaseError):
+    error_title = 'critical'
+    error_msg = "Unable to establish a database connection. Contact the dev"
+
+class WrongDbQuery(DB_BaseError):
+    error_title = 'Warning'
+    def __init__(self, error_msg):
+        WrongDbQuery.error_msg = error_msg

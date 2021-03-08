@@ -14,26 +14,47 @@ class LoginWindow(QWidget, Ui_Login):
         super().__init__()
         self.setupUi(self)
         self.allowed_symbols = ascii_letters + digits
+        self.login = None
+        self.password = None
+        self.db = database.DataBase()
+        self.db.setUpConnection()
+
         self.SignInButton.clicked.connect(self.SignIn)
         self.SignUpButton.clicked.connect(self.SignUp)
 
-    def SignBase(self):
-        login = self.LoginLine.text()
-        password = self.PasswordLine.text()
-        if not login or not password:
+    def SignChecks(self):
+        self._login = self.LoginLine.text()
+        self._password = self.PasswordLine.text()
+        if not self._login or not self._password:
             raise e.EmptyLine_LW()
-        elif not alphabet_text(login, self.allowed_symbols):
+        elif not alphabet_text(self._login, self.allowed_symbols):
             raise e.LoginForbiddenSymbols()
-        elif not alphabet_text(password, self.allowed_symbols):
+        elif not alphabet_text(self._password, self.allowed_symbols):
             raise e.PasswordForbiddenSymbols()
+    
+    def SetUser(self):
+        self.login = self._login
+        self.password = self._password
+        self.LoginLine.setText("")
+        self.PasswordLine.setText("")
 
     def SignIn(self):
-        self.SignBase()
-        self.open_MainWindow()
+        self.SignChecks()
+        if self.db.userExist(self._login, self._password):
+            self.SetUser()
+            self.open_MainWindow()
+        else:
+            raise e.WrongLoginOrPassword()
 
     def SignUp(self):
-        self.SignBase()
-
+        self.SignChecks()
+        if not self.db.userExist(self._login):
+            self.SetUser()
+            self.db.createTable(self.login+self.password)
+            self.open_MainWindow()
+        else:
+            raise e.ExistedUser()
+        
     def open_MainWindow(self):
         self.MainWindow = MainWindow(self)
         self.hide()
@@ -47,10 +68,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.lang = {'ru': 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ', 'en': ascii_letters}
         self.first_lang = 'ru'
         self.second_lang = 'en'
+
         self.AddTranslationButton.clicked.connect(self.EnableAddingTranslation)
         self.CancelAddingTranslationButton.clicked.connect(self.CancelTranslationAdding)
         self.SubmitTranslationButton.clicked.connect(self.AddTranslation)
         self.SwapTablesButton.clicked.connect(self.SwapTables)
+        self.StartTestButton.clicked.connect(self.StartTest)
         self.SearchLine.textChanged.connect(self.SearchWord)
         #создать таблицу после логина юзера (т к от его название его таблицы = логин + пароль)
         #db = database.MainWindowDataBase(self)
@@ -75,6 +98,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             raise e.Wrong_Translation_Language()
         else:
             self.CancelTranslationAdding()
+            #слово уже может быть - тогда надо вставить его перевод
 
     def CancelTranslationAdding(self):
         self.SearchLine.setText('')
@@ -86,9 +110,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def SwapTables(self):
         self.first_lang, self.second_lang = self.second_lang, self.first_lang
 
+    def LoadTable(self, tableWidget):
+        pass
+
+    def StartTest(self):
+        pass
+
     def SearchWord(self):
         word = self.SearchLine.text()
-        #print(word)
+        if word and alphabet_text(word, self.lang.get(self.first_lang)):
+            print(word)
+        else:
+            pass #показать все слова
+
+    def add():
+        pass
+        #добавить кнопку sign out и отключение от базы с обнулением переменных инита
 
 
 def alphabet_text(text, alphabet):
@@ -102,6 +139,9 @@ def except_hook(cls, exception, traceback):
         QMessageBox.critical(None, cls.error_title, cls.error_msg, QMessageBox.Cancel)
     elif e.TestWindow_BaseError in cls.__bases__:
         pass
+    elif e.DB_BaseError in cls.__bases__:
+        QMessageBox.critical(None, cls.error_title, cls.error_msg, QMessageBox.Cancel)
+        sys.exit()
     else:
         sys.__excepthook__(cls, exception, traceback)
 
