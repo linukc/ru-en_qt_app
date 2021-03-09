@@ -60,6 +60,8 @@ class LoginWindow(QWidget, Ui_Login):
 
     def open_MainWindow(self):
         self.MainWindow = MainWindow(self)
+        self.LoginLine.setText("")
+        self.PasswordLine.setText("")
         self.hide()
         self.MainWindow.show()
 
@@ -72,12 +74,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.lang = {'ru': 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ', 'en': ascii_letters}
         self.first_lang = 'ru'
         self.second_lang = 'en'
-
         self.first_dict, self.second_dict = self.login_window.db.getDictionary(self.login_window.login+self.login_window.password)
+        self.checkboxes_state_on_whole_dict = [QtCore.Qt.Unchecked] * len(self.first_dict)
         self.first_dict_search = []
         self.second_dict_search = []
         self.CheckBoxes_group = None
-        self.checkboxes_state_on_whole_dict = [QtCore.Qt.Unchecked] * len(self.first_dict)
         self.searching_indexes = None
         self.searching_mode = False
         #только такой порядок, потому что внутри 2 метода происходит временная отвязка
@@ -93,6 +94,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.SearchLine.textChanged.connect(self.SearchWord)
         self.FirstTable.verticalScrollBar().valueChanged.connect(self.synchronize_scroll_bars)
         self.SelectAllCheckBox.stateChanged.connect(self.AllCheckBox_Pressed)
+        self.SignOutButton.clicked.connect(self.SignOut)
         #добавить кнопку выхода
         #выделить методы лишние по смыслу в _ 
     
@@ -231,9 +233,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #self._produce_test()
 
     def SignOut(self):
-        pass
-    # закрыть базу
-        #добавить кнопку sign out и отключение от базы с обнулением переменных инита
+        self.hide()
+        self.login_window.show()
 
 
 def alphabet_text(text, alphabet):
@@ -253,6 +254,7 @@ def except_hook(cls, exception, traceback):
     else:
         sys.__excepthook__(cls, exception, traceback)
 
+#login_window.db.closeConnection() нужно делать по завешению приложения
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
