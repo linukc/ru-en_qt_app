@@ -43,7 +43,7 @@ class LoginWindow(QWidget, Ui_Login):
 
     def SignIn(self):
         self.SignChecks()
-        if self.db.userExist(self._login, self._password):
+        if self.db.IsUserExist(self._login, self._password):
             self.SetUser()
             self.open_MainWindow()
         else:
@@ -51,7 +51,7 @@ class LoginWindow(QWidget, Ui_Login):
 
     def SignUp(self):
         self.SignChecks()
-        if not self.db.userExist(self._login):
+        if not self.db.IsUserExist(self._login):
             self.SetUser()
             self.db.createTable(self.login+self.password)
             self.open_MainWindow()
@@ -153,8 +153,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def SearchWord(self):
         #можно делать оптимизацию поиска - например искать уже в оптенциальных словах если человек продолжает дополнять слово буквами
-        # если нету слова то моказывает все а должен ничего
-        # баг если вводить в поиск несуществующее слово
         goal_word = self.SearchLine.text()
         if not alphabet_text(goal_word, self.lang.get(self.first_lang)):
             raise e.Wrong_Search_Language()
@@ -185,7 +183,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.SubmitTranslationButton.setEnabled(True)
             self.CancelAddingTranslationButton.setEnabled(True)
 
-
     def AddTranslation(self):
         if not self.TranslationLine.text():
             raise e.EmptyLine()
@@ -207,7 +204,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.SecondTable.clear()
         self.first_lang, self.second_lang = self.second_lang, self.first_lang
         self.first_dict, self.second_dict = self.second_dict, self.first_dict
-        self.SetTablesLayout()
+        if self.searching_mode:
+            self.SetTablesLayout([self.first_dict[i] for i in range(len(self.first_dict)) if i in self.searching_indexes.values()], 
+                                 [self.second_dict[i] for i in range(len(self.second_dict)) if i in self.searching_indexes.values()])
+        else:
+            self.SetTablesLayout()
 
     def StartTest(self):
         pass

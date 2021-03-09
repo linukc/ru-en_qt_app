@@ -2,3 +2,4 @@ db/
 workspace.code-workspace
 *.ui
 __*
+.vscode/

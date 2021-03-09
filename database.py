@@ -25,7 +25,7 @@ class DataBase():
         #while query.next():
             #print(query.value("id"))
 
-    def userExist(self, login, password=None):
+    def IsUserExist(self, login, password=None):
         query = QSqlQuery(db=self.db)
         sql = f"SELECT id FROM {self.login_table} WHERE login='{login}'"
         if password:
