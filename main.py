@@ -83,14 +83,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.SwapTablesButton.clicked.connect(self.SwapTables)
         self.StartTestButton.clicked.connect(self.StartTest)
         self.SearchLine.textChanged.connect(self.SearchWord)
+        self.FirstTable.verticalScrollBar().valueChanged.connect(self.synhronize_scroll_bars)
         #db = database.MainWindowDataBase(self)
         #добавить кнопку выхода
+   
+    def synhronize_scroll_bars(self):
+        sliderValue = self.FirstTable.verticalScrollBar().value()
+        self.SecondTable.verticalScrollBar().setValue(sliderValue)
 
     def Checkbox_clicked(self, row, column):
         #self.FirstTable.scrollTo(self.FirstTable.model().index(row, column))
         #добавить изменение скролбара до центра если это возможно (по краям проверки) и вынести из функции чтобы не искажать смысл
+        #выделить методы лишние по смыслу в _ 
         self.FirstTable.scrollTo(self.FirstTable.model().index(row, column), QAbstractItemView.PositionAtCenter)
-
+        self.synhronize_scroll_bars()
+        #self.SecondTable.scrollTo(self.SecondTable.model().index(row, column), QAbstractItemView.PositionAtCenter)
         print(row, column)
         item = self.FirstTable.item(row, column)
         print(item.checkState())
