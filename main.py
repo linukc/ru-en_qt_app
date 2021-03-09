@@ -5,7 +5,8 @@ from string import ascii_letters, digits
 
 from PyQt5 import uic
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QTableWidgetItem, QCheckBox, QHBoxLayout, QWidget, QAbstractItemView
+from PyQt5.QtWidgets import QApplication, QWidget, QAbstractItemView
+from PyQt5.QtWidgets import QMainWindow, QMessageBox, QTableWidgetItem, QCheckBox, QHBoxLayout
 from ui_main import Ui_MainWindow
 from ui_login import Ui_Form as Ui_Login
 
@@ -72,7 +73,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.second_lang = 'en'
 
         self.first_dict, self.second_dict = self.login_window.db.getDictionary(self.login_window.login+self.login_window.password)
-        self.checkeditem = len(self.first_dict) * [False]
+        self.CheckBoxes_group = None
         self.SetTablesLayout()
         self.FirstTable.cellChanged.connect(self.Checkbox_clicked)
         
@@ -83,11 +84,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.SwapTablesButton.clicked.connect(self.SwapTables)
         self.StartTestButton.clicked.connect(self.StartTest)
         self.SearchLine.textChanged.connect(self.SearchWord)
-        self.FirstTable.verticalScrollBar().valueChanged.connect(self.synhronize_scroll_bars)
+        self.FirstTable.verticalScrollBar().valueChanged.connect(self.synchronize_scroll_bars)
+        self.SelectAllCheckBox.stateChanged.connect(self.AllCheckBox_Pressed)
         #db = database.MainWindowDataBase(self)
         #добавить кнопку выхода
-   
-    def synhronize_scroll_bars(self):
+    
+    def AllCheckBox_Pressed(self):
+        if self.SelectAllCheckBox.isChecked():
+            state = QtCore.Qt.Checked
+        else:
+            state = QtCore.Qt.Unchecked
+        for cb in self.CheckBoxes_group:
+                cb.setCheckState(state)
+        self.FirstTable.scrollToTop()
+
+    def synchronize_scroll_bars(self):
         sliderValue = self.FirstTable.verticalScrollBar().value()
         self.SecondTable.verticalScrollBar().setValue(sliderValue)
 
@@ -96,8 +107,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #добавить изменение скролбара до центра если это возможно (по краям проверки) и вынести из функции чтобы не искажать смысл
         #выделить методы лишние по смыслу в _ 
         self.FirstTable.scrollTo(self.FirstTable.model().index(row, column), QAbstractItemView.PositionAtCenter)
-        self.synhronize_scroll_bars()
-        #self.SecondTable.scrollTo(self.SecondTable.model().index(row, column), QAbstractItemView.PositionAtCenter)
+        self.synchronize_scroll_bars()
         print(row, column)
         item = self.FirstTable.item(row, column)
         print(item.checkState())
@@ -105,9 +115,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def SetTablesLayout(self):
         j = 0
         column_count = 2
+        self.CheckBoxes_group = []
         for lang, data, table in zip([self.first_lang, self.second_lang], 
-                                                  [self.first_dict, self.second_dict], 
-                                                  [self.FirstTable, self.SecondTable]):
+                                     [self.first_dict, self.second_dict], 
+                                     [self.FirstTable, self.SecondTable]):
             table.setColumnCount(column_count)
             table.setRowCount(len(data))
             for i in range(len(data)):
@@ -117,6 +128,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     checkbox.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
                     checkbox.setCheckState(QtCore.Qt.Unchecked)
                     checkbox.setData(QtCore.Qt.UserRole, checkbox.checkState())
+                    self.CheckBoxes_group.append(checkbox)
                     table.setItem(i, 1, checkbox) 
             table.resizeColumnsToContents()
             j += 1
@@ -170,6 +182,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             print(word)
         else:
             pass #показать все слова
+        #добавить пердупрежденение если не та раскладка
 
     def add():
         pass
