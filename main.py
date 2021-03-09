@@ -74,6 +74,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.second_lang = 'en'
 
         self.first_dict, self.second_dict = self.login_window.db.getDictionary(self.login_window.login+self.login_window.password)
+        self.first_dict_search = []
+        self.second_dict_search = []
         self.CheckBoxes_group = None
         self.checkboxes_state_on_whole_dict = [QtCore.Qt.Unchecked] * len(self.first_dict)
         self.searching_indexes = None
@@ -118,16 +120,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.checkboxes_state_on_whole_dict[row] = QtCore.Qt.Checked
 
-    def SetTablesLayout(self, first_table_data=None, second_table_data=None):
-        if not first_table_data or not second_table_data:
+    def SetTablesLayout(self):
+        if self.searching_mode:
+            first_table_data = self.first_dict_search
+            second_table_data = self.second_dict_search
+        else:
             first_table_data = self.first_dict
             second_table_data = self.second_dict
-        
+
         self.CheckBoxes_group = []
         self.FirstTable.cellChanged.disconnect(self.Checkbox_clicked)
         j = 0
         column_count = 2
-        #self.SelectAllCheckBox.setCheckState(QtCore.Qt.Unchecked)
         for lang, data, table in zip([self.first_lang, self.second_lang], 
                                      [first_table_data, second_table_data], 
                                      [self.FirstTable, self.SecondTable]):
@@ -162,20 +166,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 raise e.WordIsMissing()
             words_indices = [self.first_dict.index(word) for word in self.first_dict if goal_word in word]
             self.searching_indexes = {i:j for i, j in enumerate(words_indices)}
-            first_dict = [self.first_dict[i] for i in words_indices]
-            second_dict = [self.second_dict[i] for i in words_indices]
+            self.first_dict_search = [self.first_dict[i] for i in words_indices]
+            self.second_dict_search = [self.second_dict[i] for i in words_indices]
             self.searching_mode = True
-            self.SetTablesLayout(first_dict, second_dict)
         else:
             self.searching_mode = False
-            self.SetTablesLayout()
+            self.first_dict_search = []
+            self.second_dict_search = []
+        self.SetTablesLayout()
 
     def EnableAddingTranslation(self):
         if not self.SearchLine.text():
             raise e.EmptyLine()
         elif not alphabet_text(self.SearchLine.text(), self.lang.get(self.first_lang)):
             raise e.Wrong_Search_Language()
-        elif self.FirstTable.rowCount():
+        elif self.SearchLine.text() in self.first_dict:
             raise e.ExistedWord()
         else:
             self.SearchLine.setDisabled(True)
@@ -184,11 +189,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.CancelAddingTranslationButton.setEnabled(True)
 
     def AddTranslation(self):
-        if not self.TranslationLine.text():
+        translation = self.TranslationLine.text()
+        if not translation:
             raise e.EmptyLine()
-        elif not alphabet_text(self.TranslationLine.text(), self.lang.get(self.second_lang)):
+        elif not alphabet_text(translation, self.lang.get(self.second_lang)):
             raise e.Wrong_Translation_Language()
         else:
+            word = self.SearchLine.text()
+            self.login_window.db.AddPair_WordTranslation(self.login_window.login+self.login_window.password,
+                                                         {self.first_lang: word, self.second_lang: translation})
+            self.first_dict.append(word)
+            self.second_dict.append(translation)
+            self.checkboxes_state_on_whole_dict.append(QtCore.Qt.Unchecked)
+            if self.searching_mode:
+                self.searching_mode = False
+                self.first_dict_search = []
+                self.second_dict_search = []
+            #обязательно в таком порядке чтобы не триггерить изменение текста и функцию поиска
+            self.SetTablesLayout()
             self.CancelTranslationAdding()
 
     def CancelTranslationAdding(self):
@@ -205,16 +223,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.first_lang, self.second_lang = self.second_lang, self.first_lang
         self.first_dict, self.second_dict = self.second_dict, self.first_dict
         if self.searching_mode:
-            self.SetTablesLayout([self.first_dict[i] for i in range(len(self.first_dict)) if i in self.searching_indexes.values()], 
-                                 [self.second_dict[i] for i in range(len(self.second_dict)) if i in self.searching_indexes.values()])
-        else:
-            self.SetTablesLayout()
+            self.first_dict_search, self.second_dict_search = self.second_dict_search, self.first_dict_search
+        self.SetTablesLayout()
 
     def StartTest(self):
         pass
+        #self._produce_test()
 
-    def add():
+    def SignOut(self):
         pass
+    # закрыть базу
         #добавить кнопку sign out и отключение от базы с обнулением переменных инита
 
 

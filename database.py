@@ -50,5 +50,14 @@ class DataBase():
         
         return ru, en
 
+    def AddPair_WordTranslation(self, table, data):
+        query = QSqlQuery(db=self.db)
+        ru = data.get("ru")
+        en = data.get("en")
+        sql = f"INSERT INTO {table} (ru, en) VALUES ('{ru}', '{en}')"
+        query.prepare(sql)
+        if not query.exec_():
+            raise e.WrongDbQuery(query.lastError().text())
+
     def closeConnection(self):
         self.db.close()
