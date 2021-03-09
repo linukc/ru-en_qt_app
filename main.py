@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QAbstractItemView
 from PyQt5.QtWidgets import QMainWindow, QMessageBox, QTableWidgetItem, QCheckBox, QHBoxLayout
 from ui_main import Ui_MainWindow
 from ui_login import Ui_Form as Ui_Login
+from ui_test import Ui_Form as Ui_Test
 
 
 class LoginWindow(QWidget, Ui_Login):
@@ -229,8 +230,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.SetTablesLayout()
 
     def StartTest(self):
-        pass
-        #self._produce_test()
+        self.hide()
+        self.test_window = TestWindow(self)
+        self.test_window.show()
 
     def SignOut(self):
         self.hide()
@@ -254,8 +256,14 @@ def except_hook(cls, exception, traceback):
     else:
         sys.__excepthook__(cls, exception, traceback)
 
-#login_window.db.closeConnection() нужно делать по завешению приложения
 
+class TestWindow(QMainWindow, Ui_Test):
+    def __init__(self, *args):
+        super().__init__()
+        self.setupUi(self)
+
+
+#login_window.db.closeConnection() нужно делать по завешению приложения
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     
