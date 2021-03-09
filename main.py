@@ -118,10 +118,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.checkboxes_state_on_whole_dict[row] = QtCore.Qt.Checked
 
-        #print(row, column)
-        #item = self.FirstTable.item(row, column)
-        #print(item.checkState())
-
     def SetTablesLayout(self, first_table_data=None, second_table_data=None):
         if not first_table_data or not second_table_data:
             first_table_data = self.first_dict
@@ -157,13 +153,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def SearchWord(self):
         #можно делать оптимизацию поиска - например искать уже в оптенциальных словах если человек продолжает дополнять слово буквами
-        # пересозадются чекбоксы  из за setlayout
         # если нету слова то моказывает все а должен ничего
         # баг если вводить в поиск несуществующее слово
         goal_word = self.SearchLine.text()
         if not alphabet_text(goal_word, self.lang.get(self.first_lang)):
             raise e.Wrong_Search_Language()
         if goal_word:
+            words = [word for word in self.first_dict if goal_word in word]
+            if not words:
+                raise e.WordIsMissing()
             words_indices = [self.first_dict.index(word) for word in self.first_dict if goal_word in word]
             self.searching_indexes = {i:j for i, j in enumerate(words_indices)}
             first_dict = [self.first_dict[i] for i in words_indices]
@@ -225,7 +223,7 @@ def alphabet_text(text, alphabet):
 
 def except_hook(cls, exception, traceback):
     if e.MainWindow_BaseError in cls.__bases__:
-        login_window.MainWindow.statusBar().showMessage(cls.error_msg, 5000)
+        login_window.MainWindow.statusBar().showMessage(cls.error_msg, 3000)
     elif e.LoginWindow_BaseError in cls.__bases__:
         QMessageBox.critical(None, cls.error_title, cls.error_msg, QMessageBox.Cancel)
     elif e.TestWindow_BaseError in cls.__bases__:

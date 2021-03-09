@@ -41,6 +41,9 @@ class EmptyLine(MainWindow_BaseError):
 class ExistedWord(MainWindow_BaseError):
     error_msg = "Existed word"
 
+class WordIsMissing(MainWindow_BaseError):
+    error_msg = "Word Is Missing"
+
 
 class TestWindow_BaseError(Exception):
     pass
