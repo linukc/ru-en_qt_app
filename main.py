@@ -4,7 +4,7 @@ import database
 from string import ascii_letters, digits
 
 from PyQt5 import uic
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QWidget
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QTableWidgetItem, QWidget
 from ui_main import Ui_MainWindow
 from ui_login import Ui_Form as Ui_Login
 
@@ -54,7 +54,7 @@ class LoginWindow(QWidget, Ui_Login):
             self.open_MainWindow()
         else:
             raise e.ExistedUser()
-        
+
     def open_MainWindow(self):
         self.MainWindow = MainWindow(self)
         self.hide()
@@ -65,9 +65,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, *args):
         super().__init__()
         self.setupUi(self)
+        self.login_window = args[0]
         self.lang = {'ru': 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ', 'en': ascii_letters}
         self.first_lang = 'ru'
         self.second_lang = 'en'
+
+        self.FirstTable.setColumnCount(2)
+        ru_dict, en_dict = self.login_window.db.getDictionary(self.login_window.login+self.login_window.password)
+        self.FirstTable.setRowCount(len(ru_dict))
+        for i in range(len(ru_dict)):
+            self.FirstTable.setItem(i, 0, QTableWidgetItem(ru_dict[i]))
 
         self.AddTranslationButton.clicked.connect(self.EnableAddingTranslation)
         self.CancelAddingTranslationButton.clicked.connect(self.CancelTranslationAdding)
@@ -75,7 +82,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.SwapTablesButton.clicked.connect(self.SwapTables)
         self.StartTestButton.clicked.connect(self.StartTest)
         self.SearchLine.textChanged.connect(self.SearchWord)
-        #создать таблицу после логина юзера (т к от его название его таблицы = логин + пароль)
         #db = database.MainWindowDataBase(self)
         #добавить кнопку выхода
 

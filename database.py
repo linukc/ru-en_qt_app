@@ -35,5 +35,20 @@ class DataBase():
             raise e.WrongDbQuery(query.lastError().text())
         return query.first()
 
+    def getDictionary(self, table):
+        query = QSqlQuery(db=self.db)
+        sql = f"SELECT ru, en FROM {table}"
+        query.prepare(sql)
+        if not query.exec_():
+            raise e.WrongDbQuery(query.lastError().text())
+        
+        ru = []
+        en = []
+        while query.next():
+            ru.append(query.value("ru"))
+            en.append(query.value("en"))
+        
+        return ru, en
+
     def closeConnection(self):
         self.db.close()
