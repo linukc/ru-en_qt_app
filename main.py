@@ -4,7 +4,7 @@ import database
 from string import ascii_letters, digits
 
 from PyQt5 import uic
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QTableWidgetItem, QWidget
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QTableWidgetItem, QCheckBox, QHBoxLayout, QWidget
 from ui_main import Ui_MainWindow
 from ui_login import Ui_Form as Ui_Login
 
@@ -70,11 +70,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.first_lang = 'ru'
         self.second_lang = 'en'
 
-        self.FirstTable.setColumnCount(2)
-        ru_dict, en_dict = self.login_window.db.getDictionary(self.login_window.login+self.login_window.password)
-        self.FirstTable.setRowCount(len(ru_dict))
-        for i in range(len(ru_dict)):
-            self.FirstTable.setItem(i, 0, QTableWidgetItem(ru_dict[i]))
+        self.first_dict, self.second_dict = self.login_window.db.getDictionary(self.login_window.login+self.login_window.password)
+        self.setTablesLayout()
 
         self.AddTranslationButton.clicked.connect(self.EnableAddingTranslation)
         self.CancelAddingTranslationButton.clicked.connect(self.CancelTranslationAdding)
@@ -84,6 +81,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.SearchLine.textChanged.connect(self.SearchWord)
         #db = database.MainWindowDataBase(self)
         #добавить кнопку выхода
+
+    def setTablesLayout(self):
+        for lang, data, table in zip([self.first_lang, self.second_lang], 
+                                     [self.first_dict, self.second_dict], 
+                                     [self.FirstTable, self.SecondTable]):
+            table.setColumnCount(2)
+            table.setRowCount(len(data))
+            for i in range(len(data)):
+                table.setItem(i, 0, QTableWidgetItem(data[i][0]))
+                
+                checkBoxWidget = QWidget()
+                checkBox = QCheckBox()
+                layoutCheckBox = QHBoxLayout(checkBoxWidget)
+                layoutCheckBox.addWidget(checkBox)
+                #layoutCheckBox.setAlignment()
+                layoutCheckBox.setContentsMargins(0, 0, 0, 0)
+                table.setCellWidget(i, 1, checkBoxWidget) 
+
 
     def EnableAddingTranslation(self):
         if not self.SearchLine.text():
@@ -114,7 +129,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.CancelAddingTranslationButton.setDisabled(True)
         
     def SwapTables(self):
+        self.FirstTable.clear()
+        self.SecondTable.clear()
         self.first_lang, self.second_lang = self.second_lang, self.first_lang
+        self.first_dict, self.second_dict = self.second_dict, self.first_dict
+        self.setTablesLayout()
 
     def LoadTable(self, tableWidget):
         pass
