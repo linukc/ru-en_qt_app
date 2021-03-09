@@ -4,6 +4,7 @@ import database
 from string import ascii_letters, digits
 
 from PyQt5 import uic
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QTableWidgetItem, QCheckBox, QHBoxLayout, QWidget
 from ui_main import Ui_MainWindow
 from ui_login import Ui_Form as Ui_Login
@@ -72,6 +73,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.first_dict, self.second_dict = self.login_window.db.getDictionary(self.login_window.login+self.login_window.password)
         self.setTablesLayout()
+        self.FirstTable.cellChanged.connect(self.Checkbox_clicked)
 
         self.AddTranslationButton.clicked.connect(self.EnableAddingTranslation)
         self.CancelAddingTranslationButton.clicked.connect(self.CancelTranslationAdding)
@@ -82,6 +84,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #db = database.MainWindowDataBase(self)
         #добавить кнопку выхода
 
+    def Checkbox_clicked(self, row, column):
+        print(row, column)
+        item = self.FirstTable.item(row, column)
+        print(item.checkState())
+
+
     def setTablesLayout(self):
         for lang, data, table in zip([self.first_lang, self.second_lang], 
                                      [self.first_dict, self.second_dict], 
@@ -91,13 +99,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             for i in range(len(data)):
                 table.setItem(i, 0, QTableWidgetItem(data[i][0]))
                 
-                checkBoxWidget = QWidget()
-                checkBox = QCheckBox()
-                layoutCheckBox = QHBoxLayout(checkBoxWidget)
-                layoutCheckBox.addWidget(checkBox)
-                #layoutCheckBox.setAlignment()
-                layoutCheckBox.setContentsMargins(0, 0, 0, 0)
-                table.setCellWidget(i, 1, checkBoxWidget) 
+                checkbox = QTableWidgetItem()
+                checkbox.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+                checkbox.setCheckState(QtCore.Qt.Unchecked)
+                checkbox.setData(QtCore.Qt.UserRole, checkbox.checkState())
+                table.setItem(i, 1, checkbox) 
+            table.resizeColumnsToContents()
 
 
     def EnableAddingTranslation(self):
