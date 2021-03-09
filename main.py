@@ -2,6 +2,7 @@ import sys
 import exception as e
 import database
 from string import ascii_letters, digits
+import random
 
 from PyQt5 import uic
 from PyQt5 import QtCore, QtGui
@@ -74,9 +75,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.first_dict, self.second_dict = self.login_window.db.getDictionary(self.login_window.login+self.login_window.password)
         self.CheckBoxes_group = None
-        self.SetTablesLayout()
+        self.checkboxes_state_on_whole_dict = [QtCore.Qt.Unchecked] * len(self.first_dict)
+        self.searching_indexes = None
+        self.searching_mode = False
+        #только такой порядок, потому что внутри 2 метода происходит временная отвязка
         self.FirstTable.cellChanged.connect(self.Checkbox_clicked)
-        
+        self.SetTablesLayout()
+        #
 
         self.AddTranslationButton.clicked.connect(self.EnableAddingTranslation)
         self.CancelAddingTranslationButton.clicked.connect(self.CancelTranslationAdding)
@@ -86,8 +91,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.SearchLine.textChanged.connect(self.SearchWord)
         self.FirstTable.verticalScrollBar().valueChanged.connect(self.synchronize_scroll_bars)
         self.SelectAllCheckBox.stateChanged.connect(self.AllCheckBox_Pressed)
-        #db = database.MainWindowDataBase(self)
         #добавить кнопку выхода
+        #выделить методы лишние по смыслу в _ 
     
     def AllCheckBox_Pressed(self):
         if self.SelectAllCheckBox.isChecked():
@@ -103,21 +108,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.SecondTable.verticalScrollBar().setValue(sliderValue)
 
     def Checkbox_clicked(self, row, column):
-        #self.FirstTable.scrollTo(self.FirstTable.model().index(row, column))
-        #добавить изменение скролбара до центра если это возможно (по краям проверки) и вынести из функции чтобы не искажать смысл
-        #выделить методы лишние по смыслу в _ 
         self.FirstTable.scrollTo(self.FirstTable.model().index(row, column), QAbstractItemView.PositionAtCenter)
         self.synchronize_scroll_bars()
-        print(row, column)
-        item = self.FirstTable.item(row, column)
-        print(item.checkState())
+        
+        if self.searching_mode:
+            row = self.searching_indexes.get(row)
+        if self.checkboxes_state_on_whole_dict[row] == QtCore.Qt.Checked:
+            self.checkboxes_state_on_whole_dict[row] = QtCore.Qt.Unchecked
+        else:
+            self.checkboxes_state_on_whole_dict[row] = QtCore.Qt.Checked
 
-    def SetTablesLayout(self):
+        #print(row, column)
+        #item = self.FirstTable.item(row, column)
+        #print(item.checkState())
+
+    def SetTablesLayout(self, first_table_data=None, second_table_data=None):
+        if not first_table_data or not second_table_data:
+            first_table_data = self.first_dict
+            second_table_data = self.second_dict
+        
+        self.CheckBoxes_group = []
+        self.FirstTable.cellChanged.disconnect(self.Checkbox_clicked)
         j = 0
         column_count = 2
-        self.CheckBoxes_group = []
+        #self.SelectAllCheckBox.setCheckState(QtCore.Qt.Unchecked)
         for lang, data, table in zip([self.first_lang, self.second_lang], 
-                                     [self.first_dict, self.second_dict], 
+                                     [first_table_data, second_table_data], 
                                      [self.FirstTable, self.SecondTable]):
             table.setColumnCount(column_count)
             table.setRowCount(len(data))
@@ -126,39 +142,64 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if j == 0:
                     checkbox = QTableWidgetItem()
                     checkbox.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
-                    checkbox.setCheckState(QtCore.Qt.Unchecked)
+                    if self.searching_mode:
+                        checkbox.setCheckState(self.checkboxes_state_on_whole_dict[self.searching_indexes.get(i)])
+                    else:
+                        checkbox.setCheckState(self.checkboxes_state_on_whole_dict[i])
                     checkbox.setData(QtCore.Qt.UserRole, checkbox.checkState())
                     self.CheckBoxes_group.append(checkbox)
                     table.setItem(i, 1, checkbox) 
             table.resizeColumnsToContents()
             j += 1
             column_count = 1
+        self.FirstTable.scrollToTop()
+        self.FirstTable.cellChanged.connect(self.Checkbox_clicked)
 
+    def SearchWord(self):
+        #можно делать оптимизацию поиска - например искать уже в оптенциальных словах если человек продолжает дополнять слово буквами
+        # пересозадются чекбоксы  из за setlayout
+        # если нету слова то моказывает все а должен ничего
+        # баг если вводить в поиск несуществующее слово
+        goal_word = self.SearchLine.text()
+        if not alphabet_text(goal_word, self.lang.get(self.first_lang)):
+            raise e.Wrong_Search_Language()
+        if goal_word:
+            words_indices = [self.first_dict.index(word) for word in self.first_dict if goal_word in word]
+            self.searching_indexes = {i:j for i, j in enumerate(words_indices)}
+            first_dict = [self.first_dict[i] for i in words_indices]
+            second_dict = [self.second_dict[i] for i in words_indices]
+            self.searching_mode = True
+            self.SetTablesLayout(first_dict, second_dict)
+        else:
+            self.searching_mode = False
+            self.SetTablesLayout()
 
     def EnableAddingTranslation(self):
         if not self.SearchLine.text():
             raise e.EmptyLine()
         elif not alphabet_text(self.SearchLine.text(), self.lang.get(self.first_lang)):
             raise e.Wrong_Search_Language()
+        elif self.FirstTable.rowCount():
+            raise e.ExistedWord()
         else:
+            self.SearchLine.setDisabled(True)
             self.TranslationLine.setEnabled(True)
             self.SubmitTranslationButton.setEnabled(True)
             self.CancelAddingTranslationButton.setEnabled(True)
 
+
     def AddTranslation(self):
-        if not self.SearchLine.text() or not self.TranslationLine.text():
+        if not self.TranslationLine.text():
             raise e.EmptyLine()
-        elif not alphabet_text(self.SearchLine.text(), self.lang.get(self.first_lang)):
-            raise e.Wrong_Search_Language()
         elif not alphabet_text(self.TranslationLine.text(), self.lang.get(self.second_lang)):
             raise e.Wrong_Translation_Language()
         else:
             self.CancelTranslationAdding()
-            #слово уже может быть - тогда надо вставить его перевод
 
     def CancelTranslationAdding(self):
         self.SearchLine.setText('')
         self.TranslationLine.setText('')
+        self.SearchLine.setEnabled(True)
         self.TranslationLine.setDisabled(True)
         self.SubmitTranslationButton.setDisabled(True)
         self.CancelAddingTranslationButton.setDisabled(True)
@@ -170,19 +211,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.first_dict, self.second_dict = self.second_dict, self.first_dict
         self.SetTablesLayout()
 
-    def LoadTable(self, tableWidget):
-        pass
-
     def StartTest(self):
         pass
-
-    def SearchWord(self):
-        word = self.SearchLine.text()
-        if word and alphabet_text(word, self.lang.get(self.first_lang)):
-            print(word)
-        else:
-            pass #показать все слова
-        #добавить пердупрежденение если не та раскладка
 
     def add():
         pass
