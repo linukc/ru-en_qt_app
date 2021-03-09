@@ -45,8 +45,8 @@ class DataBase():
         ru = []
         en = []
         while query.next():
-            ru.append([query.value("ru"), False])
-            en.append([query.value("en"), False])
+            ru.append(query.value("ru"))
+            en.append(query.value("en"))
         
         return ru, en
 

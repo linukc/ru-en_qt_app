@@ -4,8 +4,8 @@ import database
 from string import ascii_letters, digits
 
 from PyQt5 import uic
-from PyQt5 import QtCore
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QTableWidgetItem, QCheckBox, QHBoxLayout, QWidget
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QTableWidgetItem, QCheckBox, QHBoxLayout, QWidget, QAbstractItemView
 from ui_main import Ui_MainWindow
 from ui_login import Ui_Form as Ui_Login
 
@@ -72,8 +72,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.second_lang = 'en'
 
         self.first_dict, self.second_dict = self.login_window.db.getDictionary(self.login_window.login+self.login_window.password)
-        self.setTablesLayout()
+        self.checkeditem = len(self.first_dict) * [False]
+        self.SetTablesLayout()
         self.FirstTable.cellChanged.connect(self.Checkbox_clicked)
+        
 
         self.AddTranslationButton.clicked.connect(self.EnableAddingTranslation)
         self.CancelAddingTranslationButton.clicked.connect(self.CancelTranslationAdding)
@@ -85,26 +87,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #добавить кнопку выхода
 
     def Checkbox_clicked(self, row, column):
+        #self.FirstTable.scrollTo(self.FirstTable.model().index(row, column))
+        #добавить изменение скролбара до центра если это возможно (по краям проверки) и вынести из функции чтобы не искажать смысл
+        self.FirstTable.scrollTo(self.FirstTable.model().index(row, column), QAbstractItemView.PositionAtCenter)
+
         print(row, column)
         item = self.FirstTable.item(row, column)
         print(item.checkState())
 
-
-    def setTablesLayout(self):
+    def SetTablesLayout(self):
+        j = 0
+        column_count = 2
         for lang, data, table in zip([self.first_lang, self.second_lang], 
-                                     [self.first_dict, self.second_dict], 
-                                     [self.FirstTable, self.SecondTable]):
-            table.setColumnCount(2)
+                                                  [self.first_dict, self.second_dict], 
+                                                  [self.FirstTable, self.SecondTable]):
+            table.setColumnCount(column_count)
             table.setRowCount(len(data))
             for i in range(len(data)):
-                table.setItem(i, 0, QTableWidgetItem(data[i][0]))
-                
-                checkbox = QTableWidgetItem()
-                checkbox.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
-                checkbox.setCheckState(QtCore.Qt.Unchecked)
-                checkbox.setData(QtCore.Qt.UserRole, checkbox.checkState())
-                table.setItem(i, 1, checkbox) 
+                table.setItem(i, 0, QTableWidgetItem(data[i]))
+                if j == 0:
+                    checkbox = QTableWidgetItem()
+                    checkbox.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+                    checkbox.setCheckState(QtCore.Qt.Unchecked)
+                    checkbox.setData(QtCore.Qt.UserRole, checkbox.checkState())
+                    table.setItem(i, 1, checkbox) 
             table.resizeColumnsToContents()
+            j += 1
+            column_count = 1
 
 
     def EnableAddingTranslation(self):
@@ -140,7 +149,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.SecondTable.clear()
         self.first_lang, self.second_lang = self.second_lang, self.first_lang
         self.first_dict, self.second_dict = self.second_dict, self.first_dict
-        self.setTablesLayout()
+        self.SetTablesLayout()
 
     def LoadTable(self, tableWidget):
         pass
