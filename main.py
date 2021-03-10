@@ -237,13 +237,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def generate_test(self):
         indexes = [i for i, state in enumerate(self.checkboxes_state_on_whole_dict) if state == QtCore.Qt.Checked]
-        if len(indexes) < 4:
+        if len(indexes) < 1:
             raise e.SmallTestSet()
         fd = list(map(lambda i: self.first_dict[i], indexes))
         sd = list(map(lambda i: self.second_dict[i], indexes))
-        test = {}
+        self.test_data = {}
         for i, word in enumerate(fd, 1):
-            test[i] = [word, self.generate_variants(sd[i-1], self.second_dict), sd[i-1]]
+            self.test_data[i] = [word, self.generate_variants(sd[i-1], self.second_dict), sd[i-1]]
 
     def StartTest(self):
         self.generate_test()
@@ -278,6 +278,29 @@ class TestWindow(QMainWindow, Ui_Test):
     def __init__(self, *args):
         super().__init__()
         self.setupUi(self)
+        self.main_window = args[0]
+        self.page_id = 1
+        self.init_page(self.page_id)
+        self.ForwardButton.clicked.connect(self.Forward)
+        self.BackButton.clicked.connect(self.Backward)
+
+    def init_page(self, number):
+        self.WordLabel.setText(self.main_window.test_data.get(number)[0])
+        for button, variant in zip(self.buttonGroup.buttons(), self.main_window.test_data.get(number)[1]):
+            button.setText(variant)
+        self.CounterLabel.setText(f"{self.page_id}/{len(self.main_window.test_data)}")
+
+    def Forward(self):
+        if self.page_id < len(self.main_window.test_data):
+            self.page_id += 1
+        self.init_page(self.page_id)
+        print(self.page_id)
+
+    def Backward(self):
+        if self.page_id > 1:
+            self.page_id -= 1
+        self.init_page(self.page_id)
+        print(self.page_id)
 
 
 #login_window.db.closeConnection() нужно делать по завешению приложения
