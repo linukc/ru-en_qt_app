@@ -233,6 +233,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         while True:
             variants = random.sample(other, 4)   
             if answer not in variants:
+                idx = random.randint(0, 3)
+                variants[idx] = answer
                 return variants  
 
     def generate_test(self):
@@ -286,21 +288,22 @@ class TestWindow(QMainWindow, Ui_Test):
 
     def init_page(self, number):
         self.WordLabel.setText(self.main_window.test_data.get(number)[0])
+        answer = self.main_window.test_data.get(number)[2]
         for button, variant in zip(self.buttonGroup.buttons(), self.main_window.test_data.get(number)[1]):
             button.setText(variant)
+            if variant == answer:
+                button.setStyleSheet("background-color: lightgreen")
         self.CounterLabel.setText(f"{self.page_id}/{len(self.main_window.test_data)}")
 
     def Forward(self):
         if self.page_id < len(self.main_window.test_data):
             self.page_id += 1
         self.init_page(self.page_id)
-        print(self.page_id)
 
     def Backward(self):
         if self.page_id > 1:
             self.page_id -= 1
         self.init_page(self.page_id)
-        print(self.page_id)
 
 
 #login_window.db.closeConnection() нужно делать по завешению приложения
