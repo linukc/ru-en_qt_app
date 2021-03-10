@@ -59,6 +59,11 @@ class Ui_Form(object):
         self.ForwardButton = QtWidgets.QPushButton(self.horizontalLayoutWidget)
         self.ForwardButton.setObjectName("ForwardButton")
         self.horizontalLayout.addWidget(self.ForwardButton)
+        self.ResultLabel = QtWidgets.QLabel(Form)
+        self.ResultLabel.setGeometry(QtCore.QRect(0, 220, 129, 29))
+        self.ResultLabel.setText("")
+        self.ResultLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.ResultLabel.setObjectName("ResultLabel")
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)

@@ -44,6 +44,9 @@ class ExistedWord(MainWindow_BaseError):
 class WordIsMissing(MainWindow_BaseError):
     error_msg = "Word Is Missing"
 
+class SmallTestSet(MainWindow_BaseError):
+    error_msg = "select at least 4 word for testing"
+
 
 class TestWindow_BaseError(Exception):
     pass

@@ -229,7 +229,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.first_dict_search, self.second_dict_search = self.second_dict_search, self.first_dict_search
         self.SetTablesLayout()
 
+    def generate_variants(self, answer, other):
+        while True:
+            variants = random.sample(other, 4)   
+            if answer not in variants:
+                return variants  
+
+    def generate_test(self):
+        indexes = [i for i, state in enumerate(self.checkboxes_state_on_whole_dict) if state == QtCore.Qt.Checked]
+        if len(indexes) < 4:
+            raise e.SmallTestSet()
+        fd = list(map(lambda i: self.first_dict[i], indexes))
+        sd = list(map(lambda i: self.second_dict[i], indexes))
+        test = {}
+        for i, word in enumerate(fd, 1):
+            test[i] = [word, self.generate_variants(sd[i-1], self.second_dict), sd[i-1]]
+
     def StartTest(self):
+        self.generate_test()
         self.hide()
         self.test_window = TestWindow(self)
         self.test_window.show()
