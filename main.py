@@ -3,6 +3,7 @@ import exception as e
 import database
 from string import ascii_letters, digits
 import random
+import time 
 
 from PyQt5 import uic
 from PyQt5 import QtCore, QtGui
@@ -258,9 +259,52 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.login_window.show()
 
 
+class TestWindow(QMainWindow, Ui_Test):
+    def __init__(self, *args):
+        super().__init__()
+        self.setupUi(self)
+        self.main_window = args[0]
+        self.page_id = 1
+        self.right_answers = 0
+        self.variant_button = None
+
+        self.init_page(self.page_id)
+        self.ForwardButton.clicked.connect(self.Forward)
+        self.buttonGroup.buttonClicked.connect(self.VariantSelected)
+
+    def init_page(self, number):
+        self.WordLabel.setText(self.main_window.test_data.get(number)[0])
+        self.answer = self.main_window.test_data.get(number)[2]
+        for button, variant in zip(self.buttonGroup.buttons(), self.main_window.test_data.get(number)[1]):
+            button.setText(variant)
+            button.setStyleSheet("background-color: none")
+            if variant == self.answer:
+                self.answer_button = button
+        self.CounterLabel.setText(f"{self.page_id}/{len(self.main_window.test_data)}")
+# почему то не работают цвета
+
+    def Forward(self):
+        if not self.variant_button:
+            raise e.NoAnswerSelected()
+        if self.page_id < len(self.main_window.test_data):
+            self.answer_button.setStyleSheet("background-color: lightgreen")
+            if self.answer_button.text() != self.variant_button.text():
+                self.variant_button.setStyleSheet("background-color: red")
+            self.page_id += 1
+            QtCore.QTimer.singleShot(3000, self.redirect)
+            #self.init_page(self.page_id)
+    
+    def redirect(self):
+        self.init_page(self.page_id)
+
+    def VariantSelected(self):
+        for button in self.sender().buttons():
+            if button.isChecked():
+                self.variant_button = button 
+
+
 def alphabet_text(text, alphabet):
     return all([symb in alphabet for symb in text])
-
 
 def except_hook(cls, exception, traceback):
     if e.MainWindow_BaseError in cls.__bases__:
@@ -274,36 +318,6 @@ def except_hook(cls, exception, traceback):
         sys.exit()
     else:
         sys.__excepthook__(cls, exception, traceback)
-
-
-class TestWindow(QMainWindow, Ui_Test):
-    def __init__(self, *args):
-        super().__init__()
-        self.setupUi(self)
-        self.main_window = args[0]
-        self.page_id = 1
-        self.init_page(self.page_id)
-        self.ForwardButton.clicked.connect(self.Forward)
-        self.BackButton.clicked.connect(self.Backward)
-
-    def init_page(self, number):
-        self.WordLabel.setText(self.main_window.test_data.get(number)[0])
-        answer = self.main_window.test_data.get(number)[2]
-        for button, variant in zip(self.buttonGroup.buttons(), self.main_window.test_data.get(number)[1]):
-            button.setText(variant)
-            if variant == answer:
-                button.setStyleSheet("background-color: lightgreen")
-        self.CounterLabel.setText(f"{self.page_id}/{len(self.main_window.test_data)}")
-
-    def Forward(self):
-        if self.page_id < len(self.main_window.test_data):
-            self.page_id += 1
-        self.init_page(self.page_id)
-
-    def Backward(self):
-        if self.page_id > 1:
-            self.page_id -= 1
-        self.init_page(self.page_id)
 
 
 #login_window.db.closeConnection() нужно делать по завешению приложения

@@ -51,6 +51,8 @@ class SmallTestSet(MainWindow_BaseError):
 class TestWindow_BaseError(Exception):
     pass
 
+class NoAnswerSelected(TestWindow_BaseError):
+    error_msg = "choose one answer"
 
 class DB_BaseError(Exception):
     pass
