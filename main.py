@@ -1,17 +1,17 @@
-import sys
-import exception as e
-import database
-from string import ascii_letters, digits
-import random
-import time 
-
 from PyQt5 import uic
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import QApplication, QWidget, QAbstractItemView
 from PyQt5.QtWidgets import QMainWindow, QMessageBox, QTableWidgetItem, QCheckBox, QHBoxLayout
+
 from ui_main import Ui_MainWindow
 from ui_login import Ui_Form as Ui_Login
 from ui_test import Ui_Form as Ui_Test
+
+import sys
+import exception as e
+import database
+import random
+from string import ascii_letters, digits
 
 
 class LoginWindow(QWidget, Ui_Login):
@@ -24,116 +24,199 @@ class LoginWindow(QWidget, Ui_Login):
         self.db = database.DataBase()
         self.db.setUpConnection()
 
-        self.SignInButton.clicked.connect(self.SignIn)
-        self.SignUpButton.clicked.connect(self.SignUp)
-
-    def SignChecks(self):
-        self._login = self.LoginLine.text()
-        self._password = self.PasswordLine.text()
-        if not self._login or not self._password:
-            raise e.EmptyLine_LW()
-        elif not alphabet_text(self._login, self.allowed_symbols):
-            raise e.LoginForbiddenSymbols()
-        elif not alphabet_text(self._password, self.allowed_symbols):
-            raise e.PasswordForbiddenSymbols()
+        self.SignInButton.clicked.connect(self.signIn)
+        self.SignUpButton.clicked.connect(self.signUp)
     
-    def SetUser(self):
+    def setUser(self):
         self.login = self._login
         self.password = self._password
         self.LoginLine.setText("")
         self.PasswordLine.setText("")
 
-    def SignIn(self):
-        self.SignChecks()
-        if self.db.IsUserExist(self._login, self._password):
-            self.SetUser()
-            self.open_MainWindow()
+    def signIn(self):
+        self._loginChecks()
+        if self.db.isUserExist(self._login, self._password):
+            self.setUser()
+            self.openMainWindow()
         else:
             raise e.WrongLoginOrPassword()
 
-    def SignUp(self):
-        self.SignChecks()
-        if not self.db.IsUserExist(self._login):
-            self.SetUser()
+    def signUp(self):
+        self._loginChecks()
+        if not self.db.isUserExist(self._login):
+            self.setUser()
             self.db.createTable(self.login+self.password)
-            self.open_MainWindow()
+            self.openMainWindow()
         else:
             raise e.ExistedUser()
 
-    def open_MainWindow(self):
+    def openMainWindow(self):
         self.MainWindow = MainWindow(self)
         self.LoginLine.setText("")
         self.PasswordLine.setText("")
         self.hide()
         self.MainWindow.show()
 
+    def _loginChecks(self):
+        self._login = self.LoginLine.text()
+        self._password = self.PasswordLine.text()
+        if not self._login or not self._password:
+            raise e.EmptyLine_LW()
+        elif not are_symbols_in_alphabet(self._login, self.allowed_symbols):
+            raise e.LoginForbiddenSymbols()
+        elif not are_symbols_in_alphabet(self._password, self.allowed_symbols):
+            raise e.PasswordForbiddenSymbols()
+
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, *args):
         super().__init__()
         self.setupUi(self)
-        self.login_window = args[0]
+        self._login_window = args[0]
         self.lang = {'ru': 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ', 'en': ascii_letters}
         self.first_lang = 'ru'
         self.second_lang = 'en'
-        self.first_dict, self.second_dict = self.login_window.db.getDictionary(self.login_window.login+self.login_window.password)
+        self.first_dict, self.second_dict = self._login_window.db.getDictionary(self._login_window.login+self._login_window.password)
         self.checkboxes_state_on_whole_dict = [QtCore.Qt.Unchecked] * len(self.first_dict)
-        self.first_dict_search = []
-        self.second_dict_search = []
-        self.CheckBoxes_group = None
-        self.searching_indexes = None
+        self._first_dict_search = []
+        self._second_dict_search = []
+        self._checkBoxes_group = None
+        self._searching_indexes = None
         self.searching_mode = False
-        #только такой порядок, потому что внутри 2 метода происходит временная отвязка
-        self.FirstTable.cellChanged.connect(self.Checkbox_clicked)
-        self.SetTablesLayout()
+        
+        #только такой порядок, потому что внутри второго метода происходит временная отвязка
+        self.FirstTable.cellChanged.connect(self._changeCheckboxState)
+        self._setTablesLayout()
         #
+        self.AddTranslationButton.clicked.connect(self._enableAddingTranslation)
+        self.CancelAddingTranslationButton.clicked.connect(self._cancelTranslationAdding)
+        self.SubmitTranslationButton.clicked.connect(self.addTranslation)
+        self.SwapTablesButton.clicked.connect(self.swapTables)
+        self.StartTestButton.clicked.connect(self.startTest)
+        self.SearchLine.textChanged.connect(self.searchWord)
+        self.FirstTable.verticalScrollBar().valueChanged.connect(self._synchronizeScrollBars)
+        self.SelectAllCheckBox.stateChanged.connect(self.selectAll)
+        self.SignOutButton.clicked.connect(self.signOut)
 
-        self.AddTranslationButton.clicked.connect(self.EnableAddingTranslation)
-        self.CancelAddingTranslationButton.clicked.connect(self.CancelTranslationAdding)
-        self.SubmitTranslationButton.clicked.connect(self.AddTranslation)
-        self.SwapTablesButton.clicked.connect(self.SwapTables)
-        self.StartTestButton.clicked.connect(self.StartTest)
-        self.SearchLine.textChanged.connect(self.SearchWord)
-        self.FirstTable.verticalScrollBar().valueChanged.connect(self.synchronize_scroll_bars)
-        self.SelectAllCheckBox.stateChanged.connect(self.AllCheckBox_Pressed)
-        self.SignOutButton.clicked.connect(self.SignOut)
-        #добавить кнопку выхода
-        #выделить методы лишние по смыслу в _ 
+    def addTranslation(self):
+        translation = self.TranslationLine.text()
+        if not translation:
+            raise e.EmptyLine()
+        elif not are_symbols_in_alphabet(translation, self.lang.get(self.second_lang)):
+            raise e.Wrong_Translation_Language()
+        else:
+            word = self.SearchLine.text()
+            self._login_window.db.AddPair_WordTranslation(self._login_window.login+self._login_window.password,
+                                                         {self.first_lang: word, self.second_lang: translation})
+            self.first_dict.append(word)
+            self.second_dict.append(translation)
+            self.checkboxes_state_on_whole_dict.append(QtCore.Qt.Unchecked)
+            if self.searching_mode:
+                self.searching_mode = False
+                self._first_dict_search = []
+                self._second_dict_search = []
+            #обязательно в таком порядке чтобы не триггерить изменение текста и функцию поиска
+            self._setTablesLayout()
+            self._cancelTranslationAdding()
     
-    def AllCheckBox_Pressed(self):
+    def searchWord(self):
+        #можно делать оптимизацию поиска - например искать уже в оптенциальных словах если человек продолжает дополнять слово буквами
+        goal_word = self.SearchLine.text()
+        if not are_symbols_in_alphabet(goal_word, self.lang.get(self.first_lang)):
+            raise e.Wrong_Search_Language()
+        if goal_word:
+            words = [word for word in self.first_dict if goal_word in word]
+            if not words:
+                raise e.WordIsMissing()
+            words_indices = [self.first_dict.index(word) for word in self.first_dict if goal_word in word]
+            self._searching_indexes = {i:j for i, j in enumerate(words_indices)}
+            self._first_dict_search = [self.first_dict[i] for i in words_indices]
+            self._second_dict_search = [self.second_dict[i] for i in words_indices]
+            self.searching_mode = True
+        else:
+            self.searching_mode = False
+            self._first_dict_search = []
+            self._second_dict_search = []
+        self._setTablesLayout()
+
+    def selectAll(self):
         if self.SelectAllCheckBox.isChecked():
             state = QtCore.Qt.Checked
         else:
             state = QtCore.Qt.Unchecked
-        for cb in self.CheckBoxes_group:
+        for cb in self._checkBoxes_group:
                 cb.setCheckState(state)
         self.FirstTable.scrollToTop()
 
-    def synchronize_scroll_bars(self):
-        sliderValue = self.FirstTable.verticalScrollBar().value()
-        self.SecondTable.verticalScrollBar().setValue(sliderValue)
-
-    def Checkbox_clicked(self, row, column):
-        self.FirstTable.scrollTo(self.FirstTable.model().index(row, column), QAbstractItemView.PositionAtCenter)
-        self.synchronize_scroll_bars()
-        
+    def swapTables(self):
+        self.FirstTable.clear()
+        self.SecondTable.clear()
+        self.first_lang, self.second_lang = self.second_lang, self.first_lang
+        self.first_dict, self.second_dict = self.second_dict, self.first_dict
         if self.searching_mode:
-            row = self.searching_indexes.get(row)
-        if self.checkboxes_state_on_whole_dict[row] == QtCore.Qt.Checked:
-            self.checkboxes_state_on_whole_dict[row] = QtCore.Qt.Unchecked
+            self._first_dict_search, self._second_dict_search = self._second_dict_search, self._first_dict_search
+        self._setTablesLayout()
+
+    def startTest(self):
+        self._generateTest()
+        self.hide()
+        self.test_window = TestWindow(self)
+        self.test_window.show()
+
+    def signOut(self):
+        self.hide()
+        self._login_window.show()
+
+    @staticmethod
+    def _generateAnswer(answer, other):
+        while True:
+            variants = random.sample(other, 4)   
+            if answer not in variants:
+                idx = random.randint(0, 3)
+                variants[idx] = answer
+                return variants  
+    
+    def _generateTest(self):
+        indexes = [i for i, state in enumerate(self.checkboxes_state_on_whole_dict) if state == QtCore.Qt.Checked]
+        if len(indexes) < 1:
+            raise e.SmallTestSet()
+        fd = list(map(lambda i: self.first_dict[i], indexes))
+        sd = list(map(lambda i: self.second_dict[i], indexes))
+        self.test_data = {}
+        for i, word in enumerate(fd, 1):
+            self.test_data[i] = [word, self._generateAnswer(sd[i-1], self.second_dict), sd[i-1]]
+
+    def _enableAddingTranslation(self):
+        if not self.SearchLine.text():
+            raise e.EmptyLine()
+        elif not are_symbols_in_alphabet(self.SearchLine.text(), self.lang.get(self.first_lang)):
+            raise e.Wrong_Search_Language()
+        elif self.SearchLine.text() in self.first_dict:
+            raise e.ExistedWord()
         else:
-            self.checkboxes_state_on_whole_dict[row] = QtCore.Qt.Checked
+            self.SearchLine.setDisabled(True)
+            self.TranslationLine.setEnabled(True)
+            self.SubmitTranslationButton.setEnabled(True)
+            self.CancelAddingTranslationButton.setEnabled(True)
 
-    def SetTablesLayout(self):
+    def _cancelTranslationAdding(self):
+        self.SearchLine.setText('')
+        self.TranslationLine.setText('')
+        self.SearchLine.setEnabled(True)
+        self.TranslationLine.setDisabled(True)
+        self.SubmitTranslationButton.setDisabled(True)
+        self.CancelAddingTranslationButton.setDisabled(True)
+
+    def _setTablesLayout(self):
         if self.searching_mode:
-            first_table_data = self.first_dict_search
-            second_table_data = self.second_dict_search
+            first_table_data = self._first_dict_search
+            second_table_data = self._second_dict_search
         else:
             first_table_data = self.first_dict
             second_table_data = self.second_dict
 
-        self.CheckBoxes_group = []
-        self.FirstTable.cellChanged.disconnect(self.Checkbox_clicked)
+        self._checkBoxes_group = []
+        self.FirstTable.cellChanged.disconnect(self._changeCheckboxState)
         j = 0
         column_count = 2
         for lang, data, table in zip([self.first_lang, self.second_lang], 
@@ -147,163 +230,77 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     checkbox = QTableWidgetItem()
                     checkbox.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
                     if self.searching_mode:
-                        checkbox.setCheckState(self.checkboxes_state_on_whole_dict[self.searching_indexes.get(i)])
+                        checkbox.setCheckState(self.checkboxes_state_on_whole_dict[self._searching_indexes.get(i)])
                     else:
                         checkbox.setCheckState(self.checkboxes_state_on_whole_dict[i])
                     checkbox.setData(QtCore.Qt.UserRole, checkbox.checkState())
-                    self.CheckBoxes_group.append(checkbox)
+                    self._checkBoxes_group.append(checkbox)
                     table.setItem(i, 1, checkbox) 
             table.resizeColumnsToContents()
             j += 1
             column_count = 1
         self.FirstTable.scrollToTop()
-        self.FirstTable.cellChanged.connect(self.Checkbox_clicked)
+        self.FirstTable.cellChanged.connect(self._changeCheckboxState)
 
-    def SearchWord(self):
-        #можно делать оптимизацию поиска - например искать уже в оптенциальных словах если человек продолжает дополнять слово буквами
-        goal_word = self.SearchLine.text()
-        if not alphabet_text(goal_word, self.lang.get(self.first_lang)):
-            raise e.Wrong_Search_Language()
-        if goal_word:
-            words = [word for word in self.first_dict if goal_word in word]
-            if not words:
-                raise e.WordIsMissing()
-            words_indices = [self.first_dict.index(word) for word in self.first_dict if goal_word in word]
-            self.searching_indexes = {i:j for i, j in enumerate(words_indices)}
-            self.first_dict_search = [self.first_dict[i] for i in words_indices]
-            self.second_dict_search = [self.second_dict[i] for i in words_indices]
-            self.searching_mode = True
-        else:
-            self.searching_mode = False
-            self.first_dict_search = []
-            self.second_dict_search = []
-        self.SetTablesLayout()
+    def _synchronizeScrollBars(self):
+        sliderValue = self.FirstTable.verticalScrollBar().value()
+        self.SecondTable.verticalScrollBar().setValue(sliderValue)
 
-    def EnableAddingTranslation(self):
-        if not self.SearchLine.text():
-            raise e.EmptyLine()
-        elif not alphabet_text(self.SearchLine.text(), self.lang.get(self.first_lang)):
-            raise e.Wrong_Search_Language()
-        elif self.SearchLine.text() in self.first_dict:
-            raise e.ExistedWord()
-        else:
-            self.SearchLine.setDisabled(True)
-            self.TranslationLine.setEnabled(True)
-            self.SubmitTranslationButton.setEnabled(True)
-            self.CancelAddingTranslationButton.setEnabled(True)
-
-    def AddTranslation(self):
-        translation = self.TranslationLine.text()
-        if not translation:
-            raise e.EmptyLine()
-        elif not alphabet_text(translation, self.lang.get(self.second_lang)):
-            raise e.Wrong_Translation_Language()
-        else:
-            word = self.SearchLine.text()
-            self.login_window.db.AddPair_WordTranslation(self.login_window.login+self.login_window.password,
-                                                         {self.first_lang: word, self.second_lang: translation})
-            self.first_dict.append(word)
-            self.second_dict.append(translation)
-            self.checkboxes_state_on_whole_dict.append(QtCore.Qt.Unchecked)
-            if self.searching_mode:
-                self.searching_mode = False
-                self.first_dict_search = []
-                self.second_dict_search = []
-            #обязательно в таком порядке чтобы не триггерить изменение текста и функцию поиска
-            self.SetTablesLayout()
-            self.CancelTranslationAdding()
-
-    def CancelTranslationAdding(self):
-        self.SearchLine.setText('')
-        self.TranslationLine.setText('')
-        self.SearchLine.setEnabled(True)
-        self.TranslationLine.setDisabled(True)
-        self.SubmitTranslationButton.setDisabled(True)
-        self.CancelAddingTranslationButton.setDisabled(True)
+    def _changeCheckboxState(self, row, column):
+        self.FirstTable.scrollTo(self.FirstTable.model().index(row, column), QAbstractItemView.PositionAtCenter)
+        self._synchronizeScrollBars()
         
-    def SwapTables(self):
-        self.FirstTable.clear()
-        self.SecondTable.clear()
-        self.first_lang, self.second_lang = self.second_lang, self.first_lang
-        self.first_dict, self.second_dict = self.second_dict, self.first_dict
         if self.searching_mode:
-            self.first_dict_search, self.second_dict_search = self.second_dict_search, self.first_dict_search
-        self.SetTablesLayout()
-
-    def generate_variants(self, answer, other):
-        while True:
-            variants = random.sample(other, 4)   
-            if answer not in variants:
-                idx = random.randint(0, 3)
-                variants[idx] = answer
-                return variants  
-
-    def generate_test(self):
-        indexes = [i for i, state in enumerate(self.checkboxes_state_on_whole_dict) if state == QtCore.Qt.Checked]
-        if len(indexes) < 1:
-            raise e.SmallTestSet()
-        fd = list(map(lambda i: self.first_dict[i], indexes))
-        sd = list(map(lambda i: self.second_dict[i], indexes))
-        self.test_data = {}
-        for i, word in enumerate(fd, 1):
-            self.test_data[i] = [word, self.generate_variants(sd[i-1], self.second_dict), sd[i-1]]
-
-    def StartTest(self):
-        self.generate_test()
-        self.hide()
-        self.test_window = TestWindow(self)
-        self.test_window.show()
-
-    def SignOut(self):
-        self.hide()
-        self.login_window.show()
+            row = self._searching_indexes.get(row)
+        if self.checkboxes_state_on_whole_dict[row] == QtCore.Qt.Checked:
+            self.checkboxes_state_on_whole_dict[row] = QtCore.Qt.Unchecked
+        else:
+            self.checkboxes_state_on_whole_dict[row] = QtCore.Qt.Checked
 
 
 class TestWindow(QMainWindow, Ui_Test):
     def __init__(self, *args):
         super().__init__()
         self.setupUi(self)
-        self.main_window = args[0]
+        self._main_window = args[0]
         self.page_id = 1
-        self.right_answers = 0
-        self.variant_button = None
+        self._user_variant_button = None
 
-        self.init_page(self.page_id)
-        self.ForwardButton.clicked.connect(self.Forward)
-        self.buttonGroup.buttonClicked.connect(self.VariantSelected)
+        self.initPage(self.page_id)
+        self.ForwardButton.clicked.connect(self._showNextQ)
+        self.buttonGroup.buttonClicked.connect(self._userVariantHandler)
 
-    def init_page(self, number):
-        self.WordLabel.setText(self.main_window.test_data.get(number)[0])
-        self.answer = self.main_window.test_data.get(number)[2]
-        for button, variant in zip(self.buttonGroup.buttons(), self.main_window.test_data.get(number)[1]):
+    def initPage(self, number):
+        self.WordLabel.setText(self._main_window.test_data.get(number)[0])
+        self.answer = self._main_window.test_data.get(number)[2]
+        for button, variant in zip(self.buttonGroup.buttons(), self._main_window.test_data.get(number)[1]):
             button.setText(variant)
             button.setStyleSheet("background-color: none")
             if variant == self.answer:
                 self.answer_button = button
-        self.CounterLabel.setText(f"{self.page_id}/{len(self.main_window.test_data)}")
-# почему то не работают цвета
+        self.CounterLabel.setText(f"{self.page_id}/{len(self._main_window.test_data)}")
 
-    def Forward(self):
-        if not self.variant_button:
+    #баш клик на эту кнопку будт вызвать баг и дорисовывать - добавить редирект на выход после последнего перехода
+    def _showNextQ(self):
+        if not self._user_variant_button:
             raise e.NoAnswerSelected()
-        if self.page_id < len(self.main_window.test_data):
-            self.answer_button.setStyleSheet("background-color: lightgreen")
-            if self.answer_button.text() != self.variant_button.text():
-                self.variant_button.setStyleSheet("background-color: red")
+        self.answer_button.setStyleSheet("background-color: lightgreen")
+        if self.answer_button.text() != self._user_variant_button.text():
+            self._user_variant_button.setStyleSheet("background-color: red")
+        if self.page_id < len(self._main_window.test_data):
             self.page_id += 1
-            QtCore.QTimer.singleShot(3000, self.redirect)
-            #self.init_page(self.page_id)
+            QtCore.QTimer.singleShot(1000, self._redirectToTheNextQ)
     
-    def redirect(self):
-        self.init_page(self.page_id)
+    def _redirectToTheNextQ(self):
+        self.initPage(self.page_id)
 
-    def VariantSelected(self):
+    def _userVariantHandler(self):
         for button in self.sender().buttons():
             if button.isChecked():
-                self.variant_button = button 
+                self._user_variant_button = button 
 
 
-def alphabet_text(text, alphabet):
+def are_symbols_in_alphabet(text, alphabet):
     return all([symb in alphabet for symb in text])
 
 def except_hook(cls, exception, traceback):

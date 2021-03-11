@@ -18,14 +18,10 @@ class DataBase():
     def createTable(self, name):
         query = QSqlQuery(db=self.db)
         query.prepare(f'CREATE TABLE {name} (id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE NOT NULL, ru STRING, en STRING)')
-        #query.addBindValue(name)
         if not query.exec_():
             raise e.WrongDbQuery(query.lastError().text())
-        #query.exec_('SELECT * FROM login')
-        #while query.next():
-            #print(query.value("id"))
 
-    def IsUserExist(self, login, password=None):
+    def isUserExist(self, login, password=None):
         query = QSqlQuery(db=self.db)
         sql = f"SELECT id FROM {self.login_table} WHERE login='{login}'"
         if password:
@@ -40,17 +36,14 @@ class DataBase():
         sql = f"SELECT ru, en FROM {table}"
         query.prepare(sql)
         if not query.exec_():
-            raise e.WrongDbQuery(query.lastError().text())
-        
-        ru = []
-        en = []
+            raise e.WrongDbQuery(query.lastError().text())      
+        ru, en = [], []
         while query.next():
             ru.append(query.value("ru"))
-            en.append(query.value("en"))
-        
+            en.append(query.value("en"))   
         return ru, en
 
-    def AddPair_WordTranslation(self, table, data):
+    def addWordTranslation(self, table, data):
         query = QSqlQuery(db=self.db)
         ru = data.get("ru")
         en = data.get("en")
