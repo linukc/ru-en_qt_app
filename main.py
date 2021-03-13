@@ -11,6 +11,7 @@ import sys
 import exception as e
 import database
 import random
+import os
 from string import ascii_letters, digits
 
 
@@ -23,6 +24,8 @@ class LoginWindow(QWidget, Ui_Login):
         self.password = None
         self.db = database.DataBase()
         self.db.setUpConnection()
+        #if not os.path.exists(self.db.path):
+        #   self.db.createLoginTable()
 
         self.SignInButton.clicked.connect(self.signIn)
         self.SignUpButton.clicked.connect(self.signUp)
@@ -45,6 +48,7 @@ class LoginWindow(QWidget, Ui_Login):
         self._loginChecks()
         if not self.db.isUserExist(self._login):
             self.setUser()
+            self.db.addUser(self.login, self.password)
             self.db.createTable(self.login+self.password)
             self.openMainWindow()
         else:
@@ -109,7 +113,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             raise e.Wrong_Translation_Language()
         else:
             word = self.SearchLine.text()
-            self._login_window.db.AddPair_WordTranslation(self._login_window.login+self._login_window.password,
+            self._login_window.db.addWordTranslation(self._login_window.login+self._login_window.password,
                                                          {self.first_lang: word, self.second_lang: translation})
             self.first_dict.append(word)
             self.second_dict.append(translation)
@@ -336,14 +340,13 @@ def are_symbols_in_alphabet(text, alphabet):
 
 def except_hook(cls, exception, traceback):
     if e.MainWindow_BaseError in cls.__bases__:
-        login_window.MainWindow.statusBar().showMessage(cls.error_msg, 2000)
+        login_window.MainWindow.statusBar().showMessage(cls.error_msg, cls.time)
     elif e.LoginWindow_BaseError in cls.__bases__:
         QMessageBox.critical(None, cls.error_title, cls.error_msg, QMessageBox.Cancel)
     elif e.TestWindow_BaseError in cls.__bases__:
         pass
-    elif e.DB_BaseError in cls.__bases__:
-        QMessageBox.critical(None, cls.error_title, cls.error_msg, QMessageBox.Cancel)
-        sys.exit()
+    #elif e.DB_BaseError in cls.__bases__:
+       # QMessageBox.critical(None, cls.error_title, cls.error_msg, QMessageBox.Cancel)
     else:
         sys.__excepthook__(cls, exception, traceback)
 
