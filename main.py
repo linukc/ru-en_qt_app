@@ -23,9 +23,6 @@ class LoginWindow(QWidget, Ui_Login):
         self.login = None
         self.password = None
         self.db = database.DataBase()
-        self.db.setUpConnection()
-        #if not os.path.exists(self.db.path):
-        #   self.db.createLoginTable()
 
         self.SignInButton.clicked.connect(self.signIn)
         self.SignUpButton.clicked.connect(self.signUp)
@@ -345,8 +342,8 @@ def except_hook(cls, exception, traceback):
         QMessageBox.critical(None, cls.error_title, cls.error_msg, QMessageBox.Cancel)
     elif e.TestWindow_BaseError in cls.__bases__:
         pass
-    #elif e.DB_BaseError in cls.__bases__:
-       # QMessageBox.critical(None, cls.error_title, cls.error_msg, QMessageBox.Cancel)
+    elif e.DB_BaseError in cls.__bases__:
+        QMessageBox.critical(None, cls.error_title, cls.error_msg, QMessageBox.Cancel)
     else:
         sys.__excepthook__(cls, exception, traceback)
 

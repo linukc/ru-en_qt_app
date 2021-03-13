@@ -23,7 +23,7 @@ class WrongLoginOrPassword(LoginWindow_BaseError):
 
 
 class MainWindow_BaseError(Exception):
-    pass
+    time = 2000
 
 class Wrong_Search_Language(MainWindow_BaseError):
     error_msg = 'Поменяйте язык для ввода или нажмите на кнопку смены таблиц'
@@ -42,7 +42,8 @@ class ExistedWord(MainWindow_BaseError):
     error_msg = "Existed word"
 
 class WordIsMissing(MainWindow_BaseError):
-    error_msg = "Word Is Missing"
+    error_msg = "No matches"
+    time = 500
 
 class SmallTestSet(MainWindow_BaseError):
     error_msg = "select at least 1 word for testing"
