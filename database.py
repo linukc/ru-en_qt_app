@@ -2,12 +2,15 @@ from PyQt5.QtSql import QSqlDatabase, QSqlQuery
 import exception as e
 
 
-# а в коде использовать только DataBase.getwords()
 class DataBase():
+    #слова и переводы в базе хранятся в отдельных таблицах вида логин+пароль
+    #connection к одной и той же базе остается на протяжении работы для любого юзера и закрывается только после остановки программы
+    #можно придумать архитекутру хранения данных поэлегантнее
     def __init__(self, type_='QSQLITE', path='db/db.sqlite'):
         self.type_ = type_
         self.path = path
         self.login_table = 'login'# создать таблицу данных если это первый пользователь
+        
 
     def setUpConnection(self):
         self.db = QSqlDatabase.addDatabase(self.type_)

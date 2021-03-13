@@ -57,6 +57,9 @@ class LoginWindow(QWidget, Ui_Login):
         self.hide()
         self.MainWindow.show()
 
+    def closeEvent(self, event=None):
+        self.db.closeConnection()
+
     def _loginChecks(self):
         self._login = self.LoginLine.text()
         self._password = self.PasswordLine.text()
@@ -118,6 +121,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             #обязательно в таком порядке чтобы не триггерить изменение текста и функцию поиска
             self._setTablesLayout()
             self._cancelTranslationAdding()
+            #
     
     def searchWord(self):
         #можно делать оптимизацию поиска - например искать уже в оптенциальных словах если человек продолжает дополнять слово буквами
@@ -166,6 +170,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def signOut(self):
         self.hide()
         self._login_window.show()
+
+    def closeEvent(self, event=None):
+        self._login_window.db.closeConnection()
 
     @staticmethod
     def _generateAnswer(answer, other):
@@ -264,10 +271,11 @@ class TestWindow(QMainWindow, Ui_Test):
         self.setupUi(self)
         self._main_window = args[0]
         self.page_id = 1
+        self.count_of_right_answers = 0
         self._user_variant_button = None
 
         self.initPage(self.page_id)
-        self.ForwardButton.clicked.connect(self._showNextQ)
+        self.ForwardButton.clicked.connect(self.showNextQ)
         self.buttonGroup.buttonClicked.connect(self._userVariantHandler)
 
     def initPage(self, number):
@@ -280,17 +288,40 @@ class TestWindow(QMainWindow, Ui_Test):
                 self.answer_button = button
         self.CounterLabel.setText(f"{self.page_id}/{len(self._main_window.test_data)}")
 
-    #баш клик на эту кнопку будт вызвать баг и дорисовывать - добавить редирект на выход после последнего перехода
-    def _showNextQ(self):
+    def showNextQ(self):
         if not self._user_variant_button:
             raise e.NoAnswerSelected()
         self.answer_button.setStyleSheet("background-color: lightgreen")
         if self.answer_button.text() != self._user_variant_button.text():
             self._user_variant_button.setStyleSheet("background-color: red")
+        else:
+            self.count_of_right_answers += 1
+        self._disableUI()
         if self.page_id < len(self._main_window.test_data):
             self.page_id += 1
             QtCore.QTimer.singleShot(1000, self._redirectToTheNextQ)
+        else:
+            self._showCurrentResult()
+            QtCore.QTimer.singleShot(3000, self.closeEvent)
+        self._enableUI()
+            
+    def closeEvent(self, event=None):
+        self.hide()
+        self._main_window.show()
     
+    def _showCurrentResult(self):
+        self.ResultLabel.setText(f"You have reached {self.count_of_right_answers} out of {self.page_id}")
+
+    def _disableUI(self):
+        for button in self.buttonGroup.buttons():
+            button.setDisabled(True)
+        self.ForwardButton.setDisabled(True)
+
+    def _enableUI(self):
+        for button in self.buttonGroup.buttons():
+            button.setEnabled(True)
+        self.ForwardButton.setEnabled(True)
+
     def _redirectToTheNextQ(self):
         self.initPage(self.page_id)
 
@@ -305,7 +336,7 @@ def are_symbols_in_alphabet(text, alphabet):
 
 def except_hook(cls, exception, traceback):
     if e.MainWindow_BaseError in cls.__bases__:
-        login_window.MainWindow.statusBar().showMessage(cls.error_msg, 3000)
+        login_window.MainWindow.statusBar().showMessage(cls.error_msg, 2000)
     elif e.LoginWindow_BaseError in cls.__bases__:
         QMessageBox.critical(None, cls.error_title, cls.error_msg, QMessageBox.Cancel)
     elif e.TestWindow_BaseError in cls.__bases__:
@@ -317,7 +348,6 @@ def except_hook(cls, exception, traceback):
         sys.__excepthook__(cls, exception, traceback)
 
 
-#login_window.db.closeConnection() нужно делать по завешению приложения
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     
