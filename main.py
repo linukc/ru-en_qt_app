@@ -8,11 +8,12 @@ from ui_login import Ui_Form as Ui_Login
 from ui_test import Ui_Form as Ui_Test
 
 import sys
-import exception as e
-import database
 import random
 import os
 from string import ascii_letters, digits
+
+import exception as e
+import database
 
 
 class LoginWindow(QWidget, Ui_Login):
