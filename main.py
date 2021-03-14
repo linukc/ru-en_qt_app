@@ -204,6 +204,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             raise e.ExistedWord()
         else:
             self.SearchLine.setDisabled(True)
+            self.StartTestButton.setDisabled(True)
+            self.SwapTablesButton.setDisabled(True)
+            self.SignOutButton.setDisabled(True)
+            self.SelectAllCheckBox.setDisabled(True)
+
             self.TranslationLine.setEnabled(True)
             self.SubmitTranslationButton.setEnabled(True)
             self.CancelAddingTranslationButton.setEnabled(True)
@@ -211,7 +216,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _cancelTranslationAdding(self):
         self.SearchLine.setText('')
         self.TranslationLine.setText('')
+
         self.SearchLine.setEnabled(True)
+        self.StartTestButton.setEnabled(True)
+        self.SwapTablesButton.setEnabled(True)
+        self.SignOutButton.setEnabled(True)
+        self.SelectAllCheckBox.setEnabled(True)
+
         self.TranslationLine.setDisabled(True)
         self.SubmitTranslationButton.setDisabled(True)
         self.CancelAddingTranslationButton.setDisabled(True)

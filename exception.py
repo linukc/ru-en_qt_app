@@ -32,7 +32,7 @@ class Wrong_Search_Language(MainWindow_BaseError):
 
 class Wrong_Translation_Language(MainWindow_BaseError):
     #error_title = "Cannot recognize translation language"
-    error_msg = "Switch lang or \n press switch tables button"
+    error_msg = "Switch lang"
 
 class EmptyLine(MainWindow_BaseError):
     #error_title = "Note enough"
